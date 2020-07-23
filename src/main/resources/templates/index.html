@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/1.11.3/jquery.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/sockjs-client/1.4.0/sockjs.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/stomp.js/2.3.3/stomp.js"></script>
+</head>
+<body>
+<div id="msg"></div>
+<script>
+    var sockJS=new SockJS("http://localhost:8080/socket");
+    var stompClient=Stomp.over(sockJS);
+    stompClient.connect({},function(data){
+        //订阅
+        stompClient.subscribe("/server/sendMessageByServer",function (response) {
+            $("#msg").append(response.body+"<br/>");
+        })
+    })
+</script>
+</body>
+</html>
