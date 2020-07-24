@@ -11,13 +11,13 @@
 ${id}
 <div id="msg"></div>
 <script>
-    var id='${id}';
-    var sockJS=new SockJS("http://localhost:8080/socket");
-    var stompClient=Stomp.over(sockJS);
-    stompClient.connect({},function(data){
+    var id = '${id}';
+    var sockJS = new SockJS("http://localhost:8080/socket");
+    var stompClient = Stomp.over(sockJS);
+    stompClient.connect({}, function (data) {
         //订阅
-        stompClient.subscribe("/user/"+id+"/server/sendMessageByServer",function (response) {
-            $("#msg").append(response.body+"<br/>");
+        stompClient.subscribe("/user/" + id + "/server/sendMessageByServer", function (response) {
+            $("#msg").append(response.body + "<br/>");
         })
     })
 </script>
