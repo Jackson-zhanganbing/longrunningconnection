@@ -1,94 +1,65 @@
 package com.longrunningconnection.demo.sse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * 服务器端实时推送技术之 SseEmitter 的用法测试
- * <p>
- * 测试步骤:
- * 1.请求http://localhost:8080/sse/start?clientId=111接口,浏览器会阻塞,等待服务器返回结果;
- * 2.请求http://localhost:8080/sse/send?clientId=111接口,可以请求多次,并观察第1步的浏览器返回结果;
- * 3.请求http://localhost:8080/sse/end?clientId=111接口结束某个请求,第1步的浏览器将结束阻塞;
- * 其中clientId代表请求的唯一标志;
- *
- * @author zab
- */
 @RestController
-@RequestMapping("/sse")
+@RequestMapping(path = "/sse")
 public class SseEmitterController {
-    private static final Logger logger = LoggerFactory.getLogger(SseEmitterController.class);
 
-    // 用于保存每个请求对应的 SseEmitter
-    private Map<String, Result> sseEmitterMap = new ConcurrentHashMap<>();
+    private static Map<String, SseEmitter> sseCache = new ConcurrentHashMap<>();
 
-    /**
-     * 返回SseEmitter对象
-     *
-     * @param clientId
-     * @return
-     */
-    @RequestMapping("/start")
-    public SseEmitter testSseEmitter(String clientId) {
-        // 默认30秒超时,设置为0L则永不超时
-        SseEmitter sseEmitter = new SseEmitter(0L);
-        sseEmitterMap.put(clientId, new Result(clientId, System.currentTimeMillis(), sseEmitter));
+    @GetMapping(path = "/subscribe")
+    public SseEmitter subscribe(String id) {
+        // 超时时间设置为1小时
+        SseEmitter sseEmitter = new SseEmitter(3600000L);
+        sseCache.put(id, sseEmitter);
+        // 超时回调 触发
+        sseEmitter.onTimeout(() -> sseCache.remove(id));
+        // 结束之后的回调触发
+        sseEmitter.onCompletion(() -> System.out.println("完成！！！"));
         return sseEmitter;
     }
 
-    /**
-     * 向SseEmitter对象发送数据
-     *
-     * @param clientId
-     * @return
-     */
-    @RequestMapping("/send")
-    public String setSseEmitter(String clientId) {
-        try {
-            Result result = sseEmitterMap.get(clientId);
-            if (result != null && result.sseEmitter != null) {
-                long timestamp = System.currentTimeMillis();
-                result.sseEmitter.send(timestamp);
+    @GetMapping(path = "/push")
+    public String push(String id, String content) throws IOException {
+        SseEmitter sseEmitter = sseCache.get(id);
+        if (sseEmitter != null) {
+            // 发送消息
+            sseEmitter.send(content);
+        }
+        return "over";
+    }
+
+    @GetMapping(path = "over")
+    public String over(String id) {
+        SseEmitter sseEmitter = sseCache.get(id);
+        if (sseEmitter != null) {
+            // 执行完毕，断开连接
+            sseEmitter.complete();
+            sseCache.remove(id);
+        }
+        return "over";
+    }
+
+    @GetMapping(path = "/push-all")
+    public String pushAll(String content) throws IOException {
+        for (String s : sseCache.keySet()) {
+            SseEmitter sseEmitter = sseCache.get(s);
+            if (sseEmitter != null) {
+                // 发送消息
+                sseEmitter.send(content);
             }
-        } catch (IOException e) {
-            logger.error("IOException!", e);
-            return "error";
         }
 
-        return "Succeed!";
-    }
-
-    /**
-     * 将SseEmitter对象设置成完成
-     *
-     * @param clientId
-     * @return
-     */
-    @RequestMapping("/end")
-    public String completeSseEmitter(String clientId) {
-        Result result = sseEmitterMap.get(clientId);
-        if (result != null) {
-            sseEmitterMap.remove(clientId);
-            result.sseEmitter.complete();
-        }
-        return "Succeed!";
-    }
-
-    private class Result {
-        public String clientId;
-        public long timestamp;
-        public SseEmitter sseEmitter;
-
-        public Result(String clientId, long timestamp, SseEmitter sseEmitter) {
-            this.clientId = clientId;
-            this.timestamp = timestamp;
-            this.sseEmitter = sseEmitter;
-        }
+        return "over";
     }
 }
