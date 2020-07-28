@@ -16,13 +16,13 @@ public class IndexController {
 
     @GetMapping("/")
     public String index(){
-        return "index";
+        return "websocket/index";
     }
     //发送指定用户
     @GetMapping("/user")
-    public String user(Long id, ModelMap model){
+    public String user(String id, ModelMap model){
         model.addAttribute("id",id);
-        return "user";
+        return "websocket/user";
     }
     //发送指定用户
     @GetMapping("/send")

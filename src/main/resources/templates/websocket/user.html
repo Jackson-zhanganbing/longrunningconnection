@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
@@ -10,8 +10,9 @@
 <body>
 ${id}
 <div id="msg"></div>
-<script>
-    var id = '${id}';
+<script th:inline="javascript">
+    var id = [[${id}]];
+    console.log("id:",id);
     var sockJS = new SockJS("http://localhost:8080/socket");
     var stompClient = Stomp.over(sockJS);
     stompClient.connect({}, function (data) {
