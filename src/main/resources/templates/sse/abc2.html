@@ -6,8 +6,6 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>Sse测试文档</title>
 
-
-
     <script>
         var source = new EventSource('http://localhost:8080/sse/subscribe?id=abc2');
         source.onmessage = function (event) {
